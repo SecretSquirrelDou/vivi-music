@@ -1,0 +1,41 @@
+name: VIVI Music Desktop (Windows)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "desktop/**"
+      - ".github/workflows/desktop-windows.yml"
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Descargar VLC portable
+        shell: pwsh
+        run: ./scripts/fetch-vlc.ps1
+
+      - name: Compilar y empaquetar (MSI + EXE)
+        shell: pwsh
+        run: ./gradlew.bat packageMsi packageExe --no-daemon --stacktrace
+
+      - name: Subir instaladores
+        uses: actions/upload-artifact@v4
+        with:
+          name: VIVI-Music-Windows
+          path: |
+            desktop/build/compose/binaries/main/msi/*.msi
+            desktop/build/compose/binaries/main/exe/*.exe
+          if-no-files-found: error
