@@ -5,16 +5,23 @@ on:
   push:
     paths:
       - "desktop/**"
+      - "desktop.zip"
       - ".github/workflows/desktop-windows.yml"
 
 jobs:
   build-windows:
     runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: desktop
     steps:
       - uses: actions/checkout@v4
+
+      - name: Preparar carpeta desktop
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "desktop/build.gradle.kts")) {
+            if (-not (Test-Path "desktop.zip")) { throw "No se encontró ni la carpeta desktop ni desktop.zip en la raíz del repo" }
+            Expand-Archive -Path desktop.zip -DestinationPath . -Force
+          }
+          Get-ChildItem desktop
 
       - uses: actions/setup-java@v4
         with:
@@ -25,10 +32,12 @@ jobs:
 
       - name: Descargar VLC portable
         shell: pwsh
+        working-directory: desktop
         run: ./scripts/fetch-vlc.ps1
 
       - name: Compilar y empaquetar (MSI + EXE)
         shell: pwsh
+        working-directory: desktop
         run: ./gradlew.bat packageMsi packageExe --no-daemon --stacktrace
 
       - name: Subir instaladores
